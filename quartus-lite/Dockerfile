@@ -1,25 +1,25 @@
 # Use the official Debian base image
 FROM debian:bullseye
 
+# Set up arguments
+ARG QUARTUS_DIR="/opt/intelFPGA_lite/22.1std"
+ARG QUARTUS_DISABLED_COMPONENTS=quartus_help,quartus_update,arria_lite,cyclone,cyclonev,max,max10,questa_fse,questa_fe
+
 # Set up environment variables
-ENV QUARTUS_ROOTDIR="/opt/intelFPGA_lite/quartus"
-ENV PATH="${QUARTUS_ROOTDIR}/bin:${PATH}"
+ENV QUARTUS_ROOTDIR=${QUARTUS_DIR}
+ENV PATH="${QUARTUS_DIR}/quartus/bin:${PATH}"
 
 # Install necessary dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     build-essential \
-    libpng-dev \
-    libtinfo5 \
-    libstdc++6 \
-    libx11-6 \
-    libxext6 \
-    libxrender1 \
-    libxtst6 \
-    libxi6 \
     ca-certificates \
-    curl \
-    locales && \
+    expect \
+    git \
+    libglib2.0-0 \
+    libtcmalloc-minimal4 \
+    locales \
+    wget && \
     rm -rf /var/lib/apt/lists/*
 
 # Set locale to UTF-8
@@ -28,11 +28,11 @@ RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
     update-locale LANG=en_US.UTF-8
 
 # Download and Install Quartus Lite
-RUN curl -fsSL https://downloads.intel.com/akdlm/software/acdsinst/22.1std.1/917/ib_tar/Quartus-lite-22.1std.1.917-linux.tar -o quartus-lite.tar
-RUN mkdir -p /setup
-RUN tar -xvf quartus-lite.tar -C /setup
-RUN /setup/setup.sh --mode unattended --accept_eula 1
-RUN rm -rf quartus-lite.tar /setup
+RUN wget -q https://downloads.intel.com/akdlm/software/acdsinst/22.1std.1/917/ib_tar/Quartus-lite-22.1std.1.917-linux.tar -O quartus-lite.tar \
+    && mkdir -p /setup \
+    && tar -xf quartus-lite.tar -C /setup \
+    && /setup/setup.sh --mode unattended --accept_eula 1 --installdir ${QUARTUS_DIR} --disable-components ${QUARTUS_DISABLED_COMPONENTS} \
+    && rm -rf quartus-lite.tar /setup
 
 # Set working directory
 WORKDIR /workspace
